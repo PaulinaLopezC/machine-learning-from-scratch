@@ -7,6 +7,8 @@ Programa uno de los algoritmos vistos en el módulo (o que tu profesor de módul
 ## Algoritmos a implementar
 - [ ] Regresión lineal
 
+
+
 Evidencia para la materia "Inteligencia artificial avanzada para la ciencia de datos I (TC3006C)"
 
 by: Guadalupe Paulina López Cuevas | A01701095
