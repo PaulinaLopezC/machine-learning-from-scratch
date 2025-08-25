@@ -6,3 +6,6 @@
 # Linear Regression Model + Logaritmic Cost Function
 # ---------------------------------------------------------------------------------------------------------------------
 
+import numpy as np
+import pandas as pd
+import math
