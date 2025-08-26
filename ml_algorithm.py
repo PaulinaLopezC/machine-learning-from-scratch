@@ -8,4 +8,17 @@
 
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 import math
+
+def load_data(file_path):
+    # Cargar el data set desde el .csv para manipular los datos
+    df = pd.read_csv('predict_students_success_data.csv', sep=';')
+    print(df)
+    return df
+
+def main():
+    df = load_data('predict_students_success_data.csv')
+
+if __name__ == "__main__":
+    main()
