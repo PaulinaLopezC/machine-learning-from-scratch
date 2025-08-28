@@ -9,6 +9,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
 import math
 
 # Funcion para cargar el data set desde un archivo para manipular los datos
@@ -24,7 +25,7 @@ def null_count(df):
     return df_nulos
 
 # Funcion para revisar si existe algun valor duplicado y quitarlo del dataset
-def duplicate_exist(df):
+def remove_duplicate(df):
   df_nonduplicate = df.drop_duplicates()
   print("NO MORE DUPLICATED\n", df_nonduplicate)
   return df_nonduplicate
@@ -47,22 +48,44 @@ def outliers_drop(df, columns):
         df = df[(df[i] >= lower_bound) & (df[i] <= upper_bound)]
   return df
 
+# Funcion que nos sirve para remover todos los datos nulos encontrados en el dataset, de ser necesario
 def remove_nulls(df):
     df_clean = df.dropna()
     return df_clean
 
 def main():
     df = load_data('parkinsons_updrs.data')
-    df_clean = remove_nulls(df)
-    df_clean.info()
-    df_clean.describe()
+    # Desplegar informacion sobre cada una de las columnas(tipo de datos)
+    df.info()
+    # Contar cuantos valores nulos hay en cada columna
+    null_count(df)
+    # Remover los datos nulos si es que hay alguno
+    df = remove_nulls(df)
+    # Remover los valores duplicados
+    df_clean = remove_duplicate(df)
+    # Desplegar descripcion sobre
+    print("INFORMACION SOBRE DATASET\n", df_clean.describe())
+    # Quitar columna 'subject#'
     df_clean = remove_subject_column(df_clean, 'subject#')
+    # Quitar columna 'test_time'
     df_clean = remove_subject_column(df_clean, 'test_time')
+    # Crear columns para poner todas las columnas a las que queremos quitar los valores que pueden ser anomalias
     columns =  ['Jitter(%)', 'Jitter(Abs)', 'Jitter:PPQ5', 'Jitter:DDP', 'Shimmer', 'Shimmer(dB)', 'Shimmer:APQ3', 'Shimmer:APQ5', 'Shimmer:APQ11', 'Shimmer:DDA', 'NHR', 'HNR', 'RPDE', 'DFA', 'PPE']
     df_clean = outliers_drop(df_clean, columns)
+    # Definir atributos independientes de nuestro dataset
     df_x = df_clean[['age', 'sex', 'Jitter(%)', 'Jitter(Abs)', 'Jitter:PPQ5', 'Jitter:DDP', 'Shimmer', 'Shimmer(dB)', 'Shimmer:APQ3', 'Shimmer:APQ5', 'Shimmer:APQ11', 'Shimmer:DDA', 'NHR', 'HNR', 'RPDE', 'DFA', 'PPE']]
-    df_y1 = df_clean[['total_UPDRS']]
-    df_y2 = df_clean[['motor_UPDRS']]
+    # Definir atributos dependientes (target)
+    df_ytotal = df_clean[['total_UPDRS']]
+    df_ymotor = df_clean[['motor_UPDRS']]
+    # Escalamos valores para que tengan el mismo peso en nuestro modelo
+    scaler = StandardScaler()
+    df_x = scaler.fit_transform(df_clean)
+    print("VARIABLES INDEPENDIENTES\n", df_x)
+    # Hacer la traspuesta de nuestras salidas para poder hacer las operaciones sin problemas de dimensiones
+    df_ytotal = df_ytotal.T
+    print("Y TOTAL\n", df_ytotal)
+    df_ymotor = df_ymotor.T
+    print("Y MOTOR\n", df_ymotor)
     
 
 if __name__ == "__main__":
