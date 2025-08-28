@@ -47,18 +47,16 @@ def outliers_drop(df, columns):
         df = df[(df[i] >= lower_bound) & (df[i] <= upper_bound)]
   return df
 
-def clean_dataset(df):
-    df_nulos = null_count(df)
-    df.info()
-    df.describe()
-    df = duplicate_exist(df)
-    return df
-
+def remove_nulls(df):
+    df_clean = df.dropna()
+    return df_clean
 
 def main():
     df = load_data('parkinsons_updrs.data')
-    df_clean = clean_dataset(df)
-    df_clean = remove_subject_column(df, 'subject#')
+    df_clean = remove_nulls(df)
+    df_clean.info()
+    df_clean.describe()
+    df_clean = remove_subject_column(df_clean, 'subject#')
     df_clean = remove_subject_column(df_clean, 'test_time')
     columns =  ['Jitter(%)', 'Jitter(Abs)', 'Jitter:PPQ5', 'Jitter:DDP', 'Shimmer', 'Shimmer(dB)', 'Shimmer:APQ3', 'Shimmer:APQ5', 'Shimmer:APQ11', 'Shimmer:DDA', 'NHR', 'HNR', 'RPDE', 'DFA', 'PPE']
     df_clean = outliers_drop(df_clean, columns)
