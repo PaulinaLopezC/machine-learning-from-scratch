@@ -53,10 +53,76 @@ def remove_nulls(df):
     df_clean = df.dropna()
     return df_clean
 
+# Funcion para dividir el dataset en train y test y sacar las Xs y Ys
+def divide_train_test(df, x_columnas):
+    # Separar dataset en train y test
+    # 80% para train
+    train_size = int(0.8 * len(df))
+    # 20% para test
+    test_size = len(df) - train_size
+    # Dividir el dataset en train y test
+    df_train = df[:train_size]
+    df_test = df[train_size:]
+    # Escoger mi dataset para train y test
+    x_train = df_train[x_columnas].values.astype(np.float64)
+    y_train = df_train['total_UPDRS'].values.astype(np.float64)
+
+    x_test = df_test[x_columnas].values.astype(np.float64)
+    y_test = df_test['total_UPDRS'].values.astype(np.float64)
+    return x_train, y_train, x_test, y_test
+
+# Funcion para hacer transfornacion de variables dependientes e independientes
+def trans_dep_indep(x_train, y_train, x_test, y_test):
+  df_y_train = y_train.T
+  df_y_test = y_test.T
+  scaler = StandardScaler()
+  df_x_train = scaler.fit_transform(x_train)
+  df_x_test = scaler.transform(x_test)
+  return df_x_train, df_y_train, df_x_test, df_y_test
+
+def hyp(x, theta_w, b):
+    # Y = b + x*theta_w
+    # Multiplicacion entre matrices
+    return b + (x@theta_w)
+
+# Funcion para sacar mi Mean Square Error
+def MSE(x, y, theta_w, b):
+    cost = 0
+    m = len(y)
+    y_hyp = hyp(x, theta_w, b)
+    cost = (y_hyp - y)**2
+    mean_cost = np.mean(cost)
+    return mean_cost
+
+def update_gradients(x, theta_w, b, y, alfa):
+    # Convertir a numpy para mayor eficiencia
+    x = np.array(x)
+    theta_w = np.array(theta_w)
+    Y = np.array(y)
+    
+    m = len(x)  # número de ejemplos
+    n = len(theta_w)  # número de features
+    
+    # Calcular predicciones para todas las muestras
+    predictions = hyp(x,theta_w, b)  # Vectorizado: más eficiente
+    # Calcular errores
+    errors = predictions - y
+    # Actualizar theta (gradiente para cada parámetro)
+    grad = grad + np.dot(x.T, errors)
+    theta_new = theta_w - (alfa / m) * grad
+    # Actualizar bias
+    b_new = b - (alfa / m) * np.sum(errors)
+    return theta_new, b_new
+
+def GD():
+    pass
+
 def main():
     df = load_data('parkinsons_updrs.data')
     # Desplegar informacion sobre cada una de las columnas(tipo de datos)
     df.info()
+
+
     # Contar cuantos valores nulos hay en cada columna
     null_count(df)
     # Remover los datos nulos si es que hay alguno
@@ -72,21 +138,41 @@ def main():
     # Crear columns para poner todas las columnas a las que queremos quitar los valores que pueden ser anomalias
     columns =  ['Jitter(%)', 'Jitter(Abs)', 'Jitter:PPQ5', 'Jitter:DDP', 'Shimmer', 'Shimmer(dB)', 'Shimmer:APQ3', 'Shimmer:APQ5', 'Shimmer:APQ11', 'Shimmer:DDA', 'NHR', 'HNR', 'RPDE', 'DFA', 'PPE']
     df_clean = outliers_drop(df_clean, columns)
-    # Definir atributos independientes de nuestro dataset
-    df_x = df_clean[['age', 'sex', 'Jitter(%)', 'Jitter(Abs)', 'Jitter:PPQ5', 'Jitter:DDP', 'Shimmer', 'Shimmer(dB)', 'Shimmer:APQ3', 'Shimmer:APQ5', 'Shimmer:APQ11', 'Shimmer:DDA', 'NHR', 'HNR', 'RPDE', 'DFA', 'PPE']]
-    # Definir atributos dependientes (target)
-    df_ytotal = df_clean[['total_UPDRS']]
-    df_ymotor = df_clean[['motor_UPDRS']]
-    # Escalamos valores para que tengan el mismo peso en nuestro modelo
-    scaler = StandardScaler()
-    df_x = scaler.fit_transform(df_clean)
-    print("VARIABLES INDEPENDIENTES\n", df_x)
-    # Hacer la traspuesta de nuestras salidas para poder hacer las operaciones sin problemas de dimensiones
-    df_ytotal = df_ytotal.T
-    print("Y TOTAL\n", df_ytotal)
-    df_ymotor = df_ymotor.T
-    print("Y MOTOR\n", df_ymotor)
-    
+    # Revolver el dataset para tener los datos desordenados
+    df_shuffle = df_clean.sample(frac=1, random_state=42).reset_index(drop=True)
+    print("DATASET SHUFFLED\n", df_shuffle)
+
+
+    # Separar nuestro dataset en train y test
+    x_columnas = ['age', 'sex', 'Jitter(%)', 'Jitter(Abs)', 'Jitter:PPQ5', 'Jitter:DDP', 'Shimmer', 'Shimmer(dB)', 'Shimmer:APQ3', 'Shimmer:APQ5', 'Shimmer:APQ11', 'Shimmer:DDA', 'NHR', 'HNR', 'RPDE', 'DFA', 'PPE']
+    x_train, y_train, x_test, y_test = divide_train_test(df_shuffle,x_columnas)
+    # Transformacion para variables dependientes e independientes
+    df_x_train, df_y_train, df_x_test, df_y_test = trans_dep_indep(x_train, y_train, x_test, y_test)
+    print("VARIABLES DEPENDIENTES\n")
+    print("Dimensiones Y train\n", df_y_train.shape)
+    print("Dimensiones Y test\n", df_y_test.shape)
+    print("VARIABLES INDEPENDIENTES\n")
+    print("Scale X train\n",df_x_train)
+    print("Scale X test\n", df_x_test)
+
+
+    print("INICIALIZAR PARAMETROS")
+    # Weights
+    theta_w = np.zeros(len(x_columnas))
+    print("Weights = ", theta_w)
+    # Error
+    error = []
+    # Bias
+    b = 100
+    print("Bias = ", b)
+    # Learning rate
+    alfa = 0.01
+    print("learning rate = ", alfa)
+    # Epocas
+    epoch = 10
+    print("Epochs = ", epoch)
+
+
 
 if __name__ == "__main__":
     main()
