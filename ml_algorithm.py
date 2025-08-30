@@ -8,8 +8,11 @@
 
 import numpy as np
 import pandas as pd
+import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.model_selection import train_test_split
 import math
 
 # Funcion para cargar el data set desde un archivo para manipular los datos
@@ -53,75 +56,94 @@ def remove_nulls(df):
     df_clean = df.dropna()
     return df_clean
 
-# Funcion para dividir el dataset en train y test y sacar las Xs y Ys
-def divide_train_test(df, x_columnas):
-    # Separar dataset en train y test
-    # 80% para train
-    train_size = int(0.8 * len(df))
-    # 20% para test
-    test_size = len(df) - train_size
-    # Dividir el dataset en train y test
-    df_train = df[:train_size]
-    df_test = df[train_size:]
-    # Escoger mi dataset para train y test
-    x_train = df_train[x_columnas].values.astype(np.float64)
-    y_train = df_train['total_UPDRS'].values.astype(np.float64)
+# Funcion para sacar la matriz de correlacion de un dataset
+def correlation_matrix(df):
+    print("MATRIZ DE CORRELACIÓN\n")
+    correlation_matrix = df.corr()
+    plt.figure(figsize=(15, 8))
+    sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt=".3f", center=0)
+    plt.title('Matriz de Correlación')
+    plt.tight_layout()
+    plt.show()
 
-    x_test = df_test[x_columnas].values.astype(np.float64)
-    y_test = df_test['total_UPDRS'].values.astype(np.float64)
+# Funcion que saca la grafica de pares, para ver si se comportar de manera lineal
+def pair_graphic(df):
+    sns.pairplot(df, height=1.5)
+    plt.show()
+
+# Funcion para crear variables polinomiales
+def create_polynomial(df, y_target):
+    # Separar las variables independientes
+    X = df.drop(y_target, axis=1)
+    # Crear el polinomio de variables de 2do grado
+    poly = PolynomialFeatures(degree=2)
+    X_poly = poly.fit_transform(X)
+    # Guardar el polinomio
+    df_poly = pd.DataFrame(X_poly, columns=poly.get_feature_names_out(X.columns))
+    #regresar el target al dataset
+    df_poly[y_target] = df[y_target]
+    return df_poly
+
+# Funcion para dividir y deplegar shape del dataset de train y test
+def divide_train_test(df, y_target):
+    x = df.drop(y_target, axis=1)
+    y = df[y_target]
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
+    print("Shape X_train:", x_train.shape)
+    print("Shape y_train:", y_train.shape)
+    print("Shape X_test:", x_test.shape)
+    print("Shape y_test:", y_test.shape)
     return x_train, y_train, x_test, y_test
 
 # Funcion para hacer transfornacion de variables dependientes e independientes
 def trans_dep_indep(x_train, y_train, x_test, y_test):
-  df_y_train = y_train.T
-  df_y_test = y_test.T
-  scaler = StandardScaler()
-  df_x_train = scaler.fit_transform(x_train)
-  df_x_test = scaler.transform(x_test)
-  return df_x_train, df_y_train, df_x_test, df_y_test
+    df_y_train = y_train.to_numpy()
+    df_y_test = y_test.to_numpy()
+    scaler = StandardScaler()
+    df_x_train = scaler.fit_transform(x_train)
+    df_x_test = scaler.transform(x_test)
+    return df_x_train, df_y_train, df_x_test, df_y_test
 
-def hyp(x, theta_w, b):
-    # Y = b + x*theta_w
-    # Multiplicacion entre matrices
-    return b + (x@theta_w)
+def hyp_theta(x, theta, b):
+  y = 0
+  for i in range(len(theta)):
+    y = y + x[i] * theta[i]
+  y = y + b
+  return y
 
-# Funcion para sacar mi Mean Square Error
-def MSE(x, y, theta_w, b):
-    cost = 0
-    m = len(y)
-    y_hyp = hyp(x, theta_w, b)
-    cost = (y_hyp - y)**2
-    mean_cost = np.mean(cost)
-    return mean_cost
+def MSE(data, theta, b, Y):
+  cost = 0
+  m = len(data)
+  for i in range(m):
+    hyp = hyp_theta(data[i], theta, b)
+    cost = cost + (hyp - Y[i])**2
+  mean_cost = cost/(2*m)
+  return mean_cost
 
-def update_gradients(x, theta_w, b, y, alfa):
-    # Convertir a numpy para mayor eficiencia
-    x = np.array(x)
-    theta_w = np.array(theta_w)
-    Y = np.array(y)
-    
-    m = len(x)  # número de ejemplos
-    n = len(theta_w)  # número de features
-    
-    # Calcular predicciones para todas las muestras
-    predictions = hyp(x,theta_w, b)  # Vectorizado: más eficiente
-    # Calcular errores
-    errors = predictions - y
-    # Actualizar theta (gradiente para cada parámetro)
-    grad = grad + np.dot(x.T, errors)
-    theta_new = theta_w - (alfa / m) * grad
-    # Actualizar bias
-    b_new = b - (alfa / m) * np.sum(errors)
-    return theta_new, b_new
+def update(data, theta, b, Y, alfa):
+  theta_new = np.zeros(len(theta))
+  m = len(data)
+  n = len(theta)
+  for j in range(n):
+    grad = 0
+    for i in range(m):
+      error = hyp_theta(data[i], theta, b) - Y[i]
+      if j < len(data[i]):
+        grad = grad + error * data[i][j]
+      else:
+        grad = grad + error * 0
+    theta_new[j] = theta[j] - alfa/m * grad
 
-def GD():
-    pass
+  grad = 0
+  for i in range(m):
+    grad = grad + (hyp_theta(data[i], theta, b) - Y[i])
+  b_new = b - alfa/m * grad
+  return theta_new, b_new
 
 def main():
     df = load_data('parkinsons_updrs.data')
     # Desplegar informacion sobre cada una de las columnas(tipo de datos)
     df.info()
-
 
     # Contar cuantos valores nulos hay en cada columna
     null_count(df)
@@ -142,23 +164,30 @@ def main():
     df_shuffle = df_clean.sample(frac=1, random_state=42).reset_index(drop=True)
     print("DATASET SHUFFLED\n", df_shuffle)
 
+    # Sacar matriz de correlacioin
+    #correlation_matrix(df_shuffle)
+    # Sacar plot de features y targest
+    #pair_graphic(df_shuffle)
 
-    # Separar nuestro dataset en train y test
-    x_columnas = ['age', 'sex', 'Jitter(%)', 'Jitter(Abs)', 'Jitter:PPQ5', 'Jitter:DDP', 'Shimmer', 'Shimmer(dB)', 'Shimmer:APQ3', 'Shimmer:APQ5', 'Shimmer:APQ11', 'Shimmer:DDA', 'NHR', 'HNR', 'RPDE', 'DFA', 'PPE']
-    x_train, y_train, x_test, y_test = divide_train_test(df_shuffle,x_columnas)
+    # REDUCCION DE FUNCION
+    df_reduce = df_shuffle[['age', 'sex', 'total_UPDRS', 'Jitter(%)','Shimmer:APQ11','NHR', 'HNR', 'RPDE', 'DFA', 'PPE']]
+    #correlation_matrix(df_reduce)
+    #pair_graphic(df_reduce)
+
+    # Crear caracteristicas polinomiales
+    y_target = 'total_UPDRS'
+    df_final = create_polynomial(df_reduce, y_target)
+    print("DATASET POLYNOMIAL\n", df_final)
+
+    # Dividir el dataset en train y test
+    x_train, y_train, x_test, y_test = divide_train_test(df_final, y_target)
+    
     # Transformacion para variables dependientes e independientes
     df_x_train, df_y_train, df_x_test, df_y_test = trans_dep_indep(x_train, y_train, x_test, y_test)
-    print("VARIABLES DEPENDIENTES\n")
-    print("Dimensiones Y train\n", df_y_train.shape)
-    print("Dimensiones Y test\n", df_y_test.shape)
-    print("VARIABLES INDEPENDIENTES\n")
-    print("Scale X train\n",df_x_train)
-    print("Scale X test\n", df_x_test)
-
 
     print("INICIALIZAR PARAMETROS")
     # Weights
-    theta_w = np.zeros(len(x_columnas))
+    theta_w = np.zeros(df_x_train.shape[1])
     print("Weights = ", theta_w)
     # Error
     error = []
@@ -169,10 +198,26 @@ def main():
     alfa = 0.01
     print("learning rate = ", alfa)
     # Epocas
-    epoch = 10
+    epoch = 400
     print("Epochs = ", epoch)
 
+    # Entrenamiento del modelo
+    for i in range(epoch) : # Increased epochs
+        current_error = MSE(df_x_train, theta_w, b, df_y_train)
+        error.append(current_error)
+        if current_error < 0.001:
+            break
+        theta_w, b = update(df_x_train, theta_w, b, df_y_train, alfa)
 
+    print(f"\nResultados finales después de {i+1} épocas:")
+    print(f"Error final: {error[-1]:.6f}") # Access the single value in the array
+    print(f"Theta final: {theta_w}")
+    print(f"b final: {b:.2f}")
+
+    print(f"\nPredicciones vs Valores reales (entrenamiento):")
+    for i in range(5): # Print for first 5 samples
+        pred = hyp_theta(df_x_train[i], theta_w, b)
+        print(f"-> Pred: {pred:.4f}, Real: {df_y_train[i]}")
 
 if __name__ == "__main__":
     main()
