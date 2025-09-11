@@ -151,8 +151,8 @@ def main():
     # ==================================================================================
     # ARREGLOS PARA CURVA DE APRENDIZAJE DEL MODELO
     # ==================================================================================
-    train_scores = []
-    val_scores = []
+    train_error = []
+    val_error = []
     train_acc = []
     val_acc = []
     sample_sizes = range(50, len(X_train), 50)
@@ -167,15 +167,15 @@ def main():
         y_train_pred_subset = model_rf.predict(X_train[:size])
         y_val_pred = model_rf.predict(X_val)
 
-        train_scores.append(mean_squared_error(y_train[:size], y_train_pred_subset))
-        val_scores.append(mean_squared_error(y_val, y_val_pred))
+        train_error.append(mean_squared_error(y_train[:size], y_train_pred_subset))
+        val_error.append(mean_squared_error(y_val, y_val_pred))
         train_acc.append(r2_score(y_train[:size], y_train_pred_subset))
         val_acc.append(r2_score(y_val, y_val_pred))
         
     # ==================================================================================
     # GRAFICAS PARA VISUALIZAR ERROR y ACCURACY (TRAIN vs VAL) 
     # ==================================================================================
-    plot_train_vs_val(sample_sizes, train_scores, val_scores, train_acc, val_acc)
+    plot_train_vs_val(sample_sizes, train_error, val_error, train_acc, val_acc)
 
     y_train_pred_full = model_rf.predict(X_train)
     train_mse = mean_squared_error(y_train, y_train_pred_full)
@@ -196,9 +196,9 @@ def main():
     # ==================================================================================
     # ARREGLOS PARA CURVA DE APRENDIZAJE DEL MODELO MEJORADO
     # ==================================================================================
-    train_scores = []
-    val_scores = []
-    test_scores = []
+    train_error = []
+    val_error = []
+    test_error = []
     train_acc = []
     val_acc = []
     test_acc = []
@@ -215,9 +215,9 @@ def main():
         y_val_pred = model_rf_v2.predict(X_val)
         y_test_pred = model_rf_v2.predict(X_test)
 
-        train_scores.append(mean_squared_error(y_train[:size], y_train_pred_subset))
-        val_scores.append(mean_squared_error(y_val, y_val_pred))
-        test_scores.append(mean_squared_error(y_test, y_test_pred))
+        train_error.append(mean_squared_error(y_train[:size], y_train_pred_subset))
+        val_error.append(mean_squared_error(y_val, y_val_pred))
+        test_error.append(mean_squared_error(y_test, y_test_pred))
         train_acc.append(r2_score(y_train[:size], y_train_pred_subset))
         val_acc.append(r2_score(y_val, y_val_pred))
         test_acc.append(r2_score(y_test, y_test_pred))
@@ -225,7 +225,7 @@ def main():
     # ==================================================================================
     # GRAFICAS PARA VISUALIZAR ERROR y ACCURACY (TRAIN vs VAL vs TEST) 
     # ==================================================================================
-    plot_train_vs_val_vs_test(sample_sizes, train_scores, val_scores, test_scores, train_acc, val_acc, test_acc)
+    plot_train_vs_val_vs_test(sample_sizes, train_error, val_error, test_error, train_acc, val_acc, test_acc)
     
     y_train_pred_full = model_rf_v2.predict(X_train)
     train_mse = mean_squared_error(y_train, y_train_pred_full)
@@ -235,7 +235,7 @@ def main():
     val_r2 = r2_score(y_val, y_val_pred)
     test_r2 = r2_score(y_test, y_test_pred)
 
-    print("RANDOM FOREST MODEL V1")
+    print("RANDOM FOREST MODEL V2")
     print(f"MSE Train:", train_mse)
     print(f"MSE Val:", val_mse)
     print(f"MSE Test:", test_mse)
