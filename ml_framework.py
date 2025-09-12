@@ -67,7 +67,7 @@ def divide_train_val_test(df, y_target, test_size=0.2, validation_size=0.2, rand
 # ESCALAMIENTO DE VARIABLES INDEPENDIENTES Y REDIMENSION DE VARIABLES DEPENDIENTES
 # ==================================================================================
 # Funcion para hacer transformacion de variables dependientes e independientes
-def trans_indep(x_train,x_val, x_test):
+def trans_indep(x_train, x_val, x_test):
     scaler = StandardScaler()
     df_x_train = scaler.fit_transform(x_train)
     df_x_val = scaler.fit_transform(x_val)
@@ -77,6 +77,7 @@ def trans_indep(x_train,x_val, x_test):
 # ==================================================================================
 # GRAFICAS PARA VISUALIZAR ERROR, PREDICCION VS VALOR REAL (TRAIN vs VAL)
 # ==================================================================================
+# Funcion para gráficar diferencia de errores y accuracy de train y val
 def plot_train_vs_val(sample_sizes, train_scores, val_scores, train_acc, val_acc):
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
@@ -97,6 +98,7 @@ def plot_train_vs_val(sample_sizes, train_scores, val_scores, train_acc, val_acc
     plt.tight_layout()
     plt.show()
 
+# Funcion para gráficar diferencia de errores y accuracy de train, val y test
 def plot_train_vs_val_vs_test(sample_sizes, train_scores, val_scores, test_scores, train_acc, val_acc, test_acc):
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
@@ -115,6 +117,34 @@ def plot_train_vs_val_vs_test(sample_sizes, train_scores, val_scores, test_score
     axes[1].set_ylabel('Accuracy')
     axes[1].set_title('Random Forest Accuracy (train vs val vs test)')
     axes[1].legend()
+
+    plt.tight_layout()
+    plt.show()
+
+# Funcion para gráficar los resultados de las predicciones vs valores reales de train, val y test
+def plot_results(y_train, y_train_pred_full, train_r2, y_val, y_val_pred, val_r2, y_test, y_test_pred, test_r2):
+    fig, axes = plt.subplots(1, 3, figsize=(12, 4))
+
+    # Predicciones vs Valores reales (train)
+    axes[0].scatter(y_train, y_train_pred_full, alpha=0.5, color='blue')
+    axes[0].plot([y_train.min(), y_train.max()], [y_train.min(), y_train.max()], 'r--', lw=2)
+    axes[0].set_title(f'Train: R² = {train_r2:.3f}')
+    axes[0].set_xlabel('Valores Reales')
+    axes[0].set_ylabel('Predicciones')
+
+    # Predicciones vs Valores reales (val)
+    axes[1].scatter(y_val, y_val_pred, alpha=0.5, color='orange')
+    axes[1].plot([y_val.min(), y_val.max()], [y_val.min(), y_val.max()], 'r--', lw=2)
+    axes[1].set_title(f'Val: R² = {val_r2:.3f}')
+    axes[1].set_xlabel('Valores Reales')
+    axes[1].set_ylabel('Predicciones Escaladas')
+
+    # Predicciones vs Valores reales (test)
+    axes[2].scatter(y_test, y_test_pred, alpha=0.5, color='purple')
+    axes[2].plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2)
+    axes[2].set_title(f'Test: R² = {test_r2:.3f}')
+    axes[2].set_xlabel('Valores Reales')
+    axes[2].set_ylabel('Predicciones Escaladas')
 
     plt.tight_layout()
     plt.show()
@@ -208,7 +238,7 @@ def main():
     # ENTRENAMIENTO DEL MODELO MEJORADO
     # ==================================================================================
     for size in sample_sizes:
-        model_rf_v2 = RandomForestRegressor(n_estimators=200, max_depth= 15, max_features= 0.8, min_samples_leaf= 2, min_samples_split= 5, random_state=42)
+        model_rf_v2 = RandomForestRegressor(n_estimators=1000, max_depth=12, min_samples_leaf= 3, min_samples_split= 5, random_state=42)
         model_rf_v2.fit(X_train[:size], y_train[:size])
 
         y_train_pred_subset = model_rf_v2.predict(X_train[:size])
@@ -242,6 +272,8 @@ def main():
     print(f"R² Train:", train_r2)
     print(f"R² Val:", val_r2)
     print(f"R² Test:", test_r2)
+
+    plot_results(y_train, y_train_pred_full, train_r2, y_val, y_val_pred, val_r2, y_test, y_test_pred, test_r2)
 
 if __name__ == "__main__":
     main()
