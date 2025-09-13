@@ -98,27 +98,29 @@ def create_polynomial(df, y_target):
 # DIVISION DEL DATASET EN TRAIN Y TEST
 # ==================================================================================
 # Funcion para dividir y deplegar shape del dataset de train y test
-def divide_train_test(df, y_target):
+def divide_train_val_test(df, y_target, test_size=0.2, validation_size=0.2, random_state=42):
     x = df.drop(y_target, axis=1)
     y = df[y_target]
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
-    print("Shape X_train:", x_train.shape)
-    print("Shape y_train:", y_train.shape)
-    print("Shape X_test:", x_test.shape)
-    print("Shape y_test:", y_test.shape)
-    return x_train, y_train, x_test, y_test
+
+    x_train, x_temp, y_train, y_temp = train_test_split(x, y, test_size=(test_size + validation_size), random_state=random_state)
+    test_size_adjusted = test_size / (test_size + validation_size)
+    x_val, x_test, y_val, y_test = train_test_split(x_temp, y_temp, test_size=test_size_adjusted, random_state=random_state)
+
+    return x_train, y_train, x_val, y_val, x_test, y_test
 
 # ==================================================================================
 # ESCALAMIENTO DE VARIABLES INDEPENDIENTES Y REDIMENSION DE VARIABLES DEPENDIENTES
 # ==================================================================================
 # Funcion para hacer transformacion de variables dependientes e independientes
-def trans_dep_indep(x_train, y_train, x_test, y_test):
+def trans_dep_indep(x_train, y_train, x_val, y_val, x_test, y_test):
     df_y_train = y_train.to_numpy()
+    df_y_val = y_val.to_numpy()
     df_y_test = y_test.to_numpy()
     scaler = StandardScaler()
     df_x_train = scaler.fit_transform(x_train)
+    df_x_val = scaler.fit_transform(x_val)
     df_x_test = scaler.transform(x_test)
-    return df_x_train, df_y_train, df_x_test, df_y_test
+    return df_x_train, df_y_train, df_x_val, df_y_val, df_x_test, df_y_test
 
 # ==================================================================================
 # REGRESION LINEAL
@@ -161,34 +163,35 @@ def update(data, theta, b, Y, alfa):
 # GRAFICAS PARA VISUALIZAR ERROR, PREDICCION VS VALOR REAL (TRAIN Y TEST)
 # ==================================================================================
 # Funcion para graficar error de entrenamiento, comparacion valor de prediccion vs real de train y test
-def plot_results(error_train, df_y_train, df_y_pred_train, r2_train, df_y_test, df_y_pred_test, r2_test)  :
-    plt.figure(figsize=(15, 5))
+def plot_results(error_train, df_y_train, df_y_pred_train, r2_train, df_y_val, df_y_pred_val, r2_val, df_y_test, df_y_pred_test, r2_test):
+    fig, axes = plt.subplots(2, 2, figsize=(12, 8))
 
     # Evolución del error
-    plt.subplot(1, 3, 1)
-    sns.lineplot(x=range(len(error_train)), y=error_train)
-    plt.title('Evolución del Error (MSE)')
-    plt.xlabel('Epochs')
-    plt.ylabel('Train Error')
-    plt.grid(True)
+    axes[0, 0].plot(range(len(error_train)), error_train)
+    axes[0, 0].set_title('Evolución del Error (MSE)')
+    axes[0, 0].set_xlabel('Epochs')
+    axes[0, 0].set_ylabel('Train Error')
 
     # Predicciones vs Valores reales (train)
-    plt.subplot(1, 3, 2)
-    sns.scatterplot(x=df_y_train, y=df_y_pred_train, alpha=0.5, color='blue')
-    plt.plot([df_y_train.min(), df_y_train.max()], [df_y_train.min(), df_y_train.max()], 'r--', lw=2)
-    plt.title(f'Train: R² = {r2_train:.3f}')
-    plt.xlabel('Valores Reales')
-    plt.ylabel('Predicciones')
-    plt.grid(True)
+    axes[0, 1].scatter(df_y_train, df_y_pred_train, alpha=0.5, color='blue')
+    axes[0, 1].plot([df_y_train.min(), df_y_train.max()], [df_y_train.min(), df_y_train.max()], 'r--', lw=2)
+    axes[0, 1].set_title(f'Train: R² = {r2_train:.3f}')
+    axes[0, 1].set_xlabel('Valores Reales')
+    axes[0, 1].set_ylabel('Predicciones')
+
+    # Predicciones vs Valores reales (val)
+    axes[1, 0].scatter(df_y_val, df_y_pred_val, alpha=0.5, color='orange')
+    axes[1, 0].plot([df_y_val.min(), df_y_val.max()], [df_y_val.min(), df_y_val.max()], 'r--', lw=2)
+    axes[1, 0].set_title(f'Val: R² = {r2_val:.3f}')
+    axes[1, 0].set_xlabel('Valores Reales')
+    axes[1, 0].set_ylabel('Predicciones Escaladas')
 
     # Predicciones vs Valores reales (test)
-    plt.subplot(1, 3, 3)
-    sns.scatterplot(x=df_y_test, y=df_y_pred_test, alpha=0.5, color='purple')
-    plt.plot([df_y_test.min(), df_y_test.max()], [df_y_test.min(), df_y_test.max()], 'r--', lw=2)
-    plt.title(f'Test: R² = {r2_test:.3f}')
-    plt.xlabel('Valores Reales')
-    plt.ylabel('Predicciones Escaladas')
-    plt.grid(True)
+    axes[1, 1].scatter(df_y_test, df_y_pred_test, alpha=0.5, color='purple')
+    axes[1, 1].plot([df_y_test.min(), df_y_test.max()], [df_y_test.min(), df_y_test.max()], 'r--', lw=2)
+    axes[1, 1].set_title(f'Test: R² = {r2_test:.3f}')
+    axes[1, 1].set_xlabel('Valores Reales')
+    axes[1, 1].set_ylabel('Predicciones Escaladas')
 
     plt.tight_layout()
     plt.show()
@@ -244,13 +247,13 @@ def main():
     print("DATASET POLYNOMIAL\n", df_final)
 
     # ==================================================================================
-    # DIVISION DEL DATASET A TRAIN Y TEST, ESCALAMIENTO Y REDIMENSION
+    # DIVISION DEL DATASET A TRAIN, VAL Y TEST, ESCALAMIENTO Y REDIMENSION
     # ==================================================================================
-    # Dividir el dataset en train y test
-    x_train, y_train, x_test, y_test = divide_train_test(df_final, y_target)
+    # Dividir el dataset en train, val y test
+    x_train, y_train, x_val, y_val, x_test, y_test = divide_train_val_test(df_final, y_target)
     
     # Transformacion para variables dependientes e independientes
-    df_x_train, df_y_train, df_x_test, df_y_test = trans_dep_indep(x_train, y_train, x_test, y_test)
+    df_x_train, df_y_train, df_x_val, df_y_val, df_x_test, df_y_test = trans_dep_indep(x_train, y_train, x_val, y_val, x_test, y_test)
 
     # ==================================================================================
     # INICIALIZACION DE PARAMETROS PARA EL ENTRENAMIENTO DEL MODELO
@@ -302,7 +305,17 @@ def main():
         print(f"-> Pred: {pred:.4f}, Real: {df_y_train[i]}")
 
     # ==================================================================================
-    # PRUEBA DEL MODELO
+    # PRUEBA DEL MODELO EN VALIDATION
+    # ==================================================================================
+    # Calculate MSE on the val set
+    val_error = MSE(df_x_val, theta_w, b, df_y_test)
+    df_y_pred_val = [hyp_theta(x, theta_w, b) for x in df_x_val]
+    r2_val = r2_score(df_y_val, df_y_pred_val)
+    print(f"Epoch {i+1}: MSE = {val_error:.6f}, R-squared = {r2_val:.6f}")
+    print(f"\nError Cuadrático Medio (MSE) en el conjunto de validación: {val_error:.6f}")
+
+    # ==================================================================================
+    # PRUEBA DEL MODELO EN TEST
     # ==================================================================================
     # Calculate MSE on the test set
     test_error = MSE(df_x_test, theta_w, b, df_y_test)
@@ -315,7 +328,7 @@ def main():
     # GRAFICAS PARA VISUALIZAR ERROR, PREDICCION VS VALOR REAL (TRAIN Y TEST) 
     # ==================================================================================
     # Graficas
-    plot_results(error_train, df_y_train, df_y_pred_train, r2_train, df_y_test, df_y_pred_test, r2_test)    
+    plot_results(error_train, df_y_train, df_y_pred_train, r2_train, df_y_val, df_y_pred_val, r2_val, df_y_test, df_y_pred_test, r2_test)    
 
 if __name__ == "__main__":
     main()
